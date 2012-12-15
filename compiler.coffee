@@ -136,19 +136,23 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
     finalStr = ''
 
     parseCall = (call) ->
-      console.log call
-      if call.type is 'token'
-        finalStr = finalStr + "func['#{call.token}']("
-      else if call.type is 'instructions'
-        for c in call.tokens
-          parseCall c
+      # Evaluate the first expression. This represents the function call.
+      if call.tokens[0].type is 'token'
+        finalStr = finalStr + "func['#{call.tokens[0].token}']("
 
-      finalStr += ')'
-      
-      return finalStr
+      if call.tokens.length >= 2
+        for i in [1...call.tokens.length - 1]
+          param = call.tokens[i]
+          if param.type is 'token'
+            finalStr = finalStr + "func['#{param.token}'](),"
 
-    for call in objectCode
-      if call.type is 'instructions'
-        parseCall call
+        finalStr = finalStr + "func['#{call.tokens[call.tokens.length - 1].token}']()"
+
+      finalStr = finalStr + ')'
+
+    for obj in objectCode
+      if obj.type is 'instructions'
+        parseCall obj
+        finalStr = finalStr + ';'
 
     return finalStr
