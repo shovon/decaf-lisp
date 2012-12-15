@@ -2,26 +2,31 @@ Lazy = require 'lazy'
 carrier = require 'carrier'
 fs = require 'fs'
 
+stringRegExp = "(" +
+  "'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'" +
+  '|"[^"\\\\]*(?:\\\\.[^"\\\\]*)*"' +
+")"
+
+identifierRegExp = "[a-zA-Z0-9\\+><\\-_]"
+
+class SyntaxError extends Error
+  initialize: (token, message = '') ->
+    super "Error on line #{token.line}, column #{token.column + 1}: #{message}"
+
 LexicalAnalyzer = class module.exports.LexicalAnalyzer
   @tokenizeLine: (line) ->
-    spacesAndChars = line.match ///
-        # Match all spaces
-        \s+
-        # Match all opening braces
-      | \(
-        # Match all closing braces
-      | \)
-        # Match all semi-colons
-      | ;
-      | (
-            [a-zA-Z0-9\+><\-_]
-          | (
-                '[^'\\]*(?:\\.[^'\\]*)*'
-              | "[^"\\]*(?:\\.[^"\\]*)*"
-            )
-        )+
-      | \.
-      ///g
+
+    spacesAndChars = line.match new RegExp(
+      "\\s+" +
+      "|\\(" +
+      "|\\)" +
+      "|;" +
+      "|(" +
+        identifierRegExp +
+        "|" + stringRegExp +
+      ")+" +
+      "|."
+    , "g")
 
     tokens = []
 
@@ -66,7 +71,6 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
         if token.token is ')'
           return [retVal, i]
         else if token.token is '('
-          console.log "Hmm..."
           throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '('"
         else if /^[a-zA-Z]([a-zA-Z0-9]+)?/.test token.token
           retVal.push token.token
@@ -92,7 +96,14 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
           i += j
           retVal.push newTokens
         else
-          token.type = 'token'
+          strReg = new RegExp "^#{stringRegExp}$"
+          numberReg = /^[0-9]/
+          identifierReg = new RegExp "^#{identifierRegExp}+$"
+
+          if strReg.test(token.token) or numberReg.test(token.token)
+            token.type = 'literal'
+          else if identifierReg.test token.token
+            token.type = 'identifier'
           retVal.push token
 
         i++
@@ -133,18 +144,35 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
     return compiledTokens
 
   @link: (objectCode) ->
+    builtInFunctions =
+      "console-log": "console.log"
+
     finalStr = ''
 
     parseCall = (call) ->
+      outputFunctionCall = (token) ->
+        if builtInFunctions[token.token]?
+          console.log "Hmm..."
+          return "#{builtInFunctions[token.token]}("
+        else
+          return "func['#{token.token}']("
+
       # Evaluate the first expression. This represents the function call.
-      if call.tokens[0].type is 'token'
-        finalStr = finalStr + "func['#{call.tokens[0].token}']("
+      if call.tokens[0].type is 'literal'
+        throw new SyntaxError call.tokens[0], "unexpected literal."
+      
+      if call.tokens[0].type is 'identifier'
+        finalStr = finalStr + outputFunctionCall call.tokens[0]
 
       if call.tokens.length >= 2
         for i in [1...call.tokens.length - 1]
           param = call.tokens[i]
-          if param.type is 'token'
-            finalStr = finalStr + "func['#{param.token}'](),"
+          if param.type is 'literal'
+            finalStr = finalStr + param.token
+          else if param.type is 'identifier'
+            finalStr = finalStr + "#{outputFunctionCall param})"
+          else if param.type is 'instructions'
+            throw new Error "Not yet implemented."
 
         finalStr = finalStr + "func['#{call.tokens[call.tokens.length - 1].token}']()"
 
@@ -153,6 +181,6 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
     for obj in objectCode
       if obj.type is 'instructions'
         parseCall obj
-        finalStr = finalStr + ';'
+        finalStr = finalStr + ';\n'
 
     return finalStr
