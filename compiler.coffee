@@ -75,7 +75,6 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
         else if /^[a-zA-Z]([a-zA-Z0-9]+)?/.test token.token
           retVal.push token.token
         else
-          #console.log "Hmm..."
           throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '#{token.token}'"
 
         i++
@@ -124,13 +123,16 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
         funcName = tokens[i + 2].token
         [params, j] = interpretParams tokens.slice i + 4
 
-        i += j + 5
+        i += j + 4
 
         [newTokens, j] = interpretCall tokens.slice i + 1
 
         newTokens.name = funcName
         newTokens.params = params
         newTokens.type = 'function'
+
+        console.log newTokens.name
+        console.log tokens.slice i
 
         i += j
       else
@@ -150,6 +152,7 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
     finalStr = ''
 
     parseCall = (call) ->
+      #console.log call.tokens
       getFunctionCall = (token) ->
         if builtInFunctions[token.token]?
           return "#{builtInFunctions[token.token]}("
@@ -183,6 +186,10 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
 
     for obj in objectCode
       if obj.type is 'instructions'
+        parseCall obj
+        finalStr = finalStr + ';\n'
+
+      else if obj.type is 'function'
         parseCall obj
         finalStr = finalStr + ';\n'
 
