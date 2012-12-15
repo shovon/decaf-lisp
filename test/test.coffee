@@ -148,6 +148,15 @@ describe 'Lexer', ->
         object = compiler.LexicalAnalyzer.compile tokens
         output = compiler.LexicalAnalyzer.link object
 
+        expect(output).to.be 'console.log("Hello, World!");\n'
+
+        done()
+
+    it 'should be able to link code with function definitions in them', (done) ->
+      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/variable.lisp", (err, tokens) ->
+        object = compiler.LexicalAnalyzer.compile tokens
+        output = compiler.LexicalAnalyzer.link object
+
         console.log output
 
         done()

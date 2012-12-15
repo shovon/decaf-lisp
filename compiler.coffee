@@ -150,31 +150,34 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
     finalStr = ''
 
     parseCall = (call) ->
-      outputFunctionCall = (token) ->
+      getFunctionCall = (token) ->
         if builtInFunctions[token.token]?
-          console.log "Hmm..."
           return "#{builtInFunctions[token.token]}("
         else
           return "func['#{token.token}']("
+
+      outputParameter = (token) ->
+        if token.type is 'literal'
+          finalStr = finalStr + token.token
+        else if token.type is 'identifier'
+          finalStr = finalStr + "#{getFunctionCall token})"
+        else if token.type is 'instructions'
+          throw new Error "Not yet implemented."
 
       # Evaluate the first expression. This represents the function call.
       if call.tokens[0].type is 'literal'
         throw new SyntaxError call.tokens[0], "unexpected literal."
       
       if call.tokens[0].type is 'identifier'
-        finalStr = finalStr + outputFunctionCall call.tokens[0]
+        finalStr = finalStr + getFunctionCall call.tokens[0]
 
       if call.tokens.length >= 2
         for i in [1...call.tokens.length - 1]
           param = call.tokens[i]
-          if param.type is 'literal'
-            finalStr = finalStr + param.token
-          else if param.type is 'identifier'
-            finalStr = finalStr + "#{outputFunctionCall param})"
-          else if param.type is 'instructions'
-            throw new Error "Not yet implemented."
+          outputParameter param
+          finalStr = finalStr + ','
 
-        finalStr = finalStr + "func['#{call.tokens[call.tokens.length - 1].token}']()"
+        outputParameter call.tokens[call.tokens.length - 1]
 
       finalStr = finalStr + ')'
 
