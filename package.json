@@ -1,0 +1,17 @@
+{
+  "name": "prog-lang",
+  "description": "Practicing to write a programming language.",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "coffee-script": "~1.4.0",
+    "lazy": "~1.0.8",
+    "carrier": "~0.1.8"
+  },
+  "devDependencies": {
+    "expect.js": "~0.2.0"
+  }
+}
