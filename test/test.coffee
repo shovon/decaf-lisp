@@ -9,57 +9,37 @@ describe 'Lexer', ->
 
       expect(tokens.length).to.be 5
 
-      expect(tokens[0].token).to.be '('
-      expect(tokens[0].column).to.be 0
-
-      expect(tokens[1].token).to.be '+'
-      expect(tokens[1].column).to.be 1
-
-      expect(tokens[2].token).to.be 'apple'
-      expect(tokens[2].column).to.be 3
-
-      expect(tokens[3].token).to.be 'banana'
-      expect(tokens[3].column).to.be 9
-
-      expect(tokens[4].token).to.be ')'
-      expect(tokens[4].column).to.be 15
+      expect(tokens).to.eql [
+        {token: '(', column: 0}
+        {token: '+', column: 1}
+        {token: 'apple', column: 3}
+        {token: 'banana', column: 9}
+        {token: ')', column: 15}
+      ]
     
     it 'should tokenize the string (+ "apple" "banana")', ->
       code = '(+ "apple" "banana")'
       tokens = compiler.LexicalAnalyzer.tokenizeLine code
 
-      expect(tokens.length).to.be 5
-
-      expect(tokens[0].token).to.be '('
-      expect(tokens[0].column).to.be 0
-
-      expect(tokens[1].token).to.be '+'
-      expect(tokens[1].column).to.be 1
-
-      expect(tokens[2].token).to.be '"apple"'
-      expect(tokens[2].column).to.be 3
-
-      expect(tokens[3].token).to.be '"banana"'
-      expect(tokens[3].column).to.be 11
-
-      expect(tokens[4].token).to.be ')'
-      expect(tokens[4].column).to.be 19
+      expect(tokens).to.eql [
+        {token: '(', column: 0}
+        {token: '+', column: 1}
+        {token: '"apple"', column: 3}
+        {token: '"banana"', column: 11}
+        {token: ')', column: 19}
+      ]
 
     it 'should tokenize the code from a file.', (done) ->
       compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/test1.lisp", (err, tokens) ->      
         expect(tokens.length).to.be 5
 
-        expect(tokens[0].token).to.be '('
-        expect(tokens[0].column).to.be 0
-
-        expect(tokens[1].token).to.be '+'
-        expect(tokens[1].column).to.be 1
-
-        expect(tokens[2].token).to.be 'a'
-        expect(tokens[2].column).to.be 3
-
-        expect(tokens[3].token).to.be 'b'
-        expect(tokens[3].column).to.be 5
+        expect(tokens).to.eql [
+          {token: '(', line: 1, column: 0}
+          {token: '+', line: 1, column: 1}
+          {token: 'a', line: 1, column: 3}
+          {token: 'b', line: 1, column: 5}
+          {token: ')', line: 1, column: 6}
+        ]
         
         done()
 
@@ -67,26 +47,107 @@ describe 'Lexer', ->
       compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/test1.lisp", (err, tokens) ->
         object = compiler.LexicalAnalyzer.compile tokens
 
-        expect(object[0].length).to.be 3
+        expect(object[0].type).to.be 'instructions'
+        expect(object[0].tokens[0].token).to.be '+'
+        expect(object[0].tokens[1].token).to.be 'a'
+        expect(object[0].tokens[2].token).to.be 'b'
 
-        expect(object[0][0].token).to.be '+'
-        expect(object[0][1].token).to.be 'a'
-        expect(object[0][2].token).to.be 'b'
         done()
 
-    xit 'should be able to compile code with nesting'
-      #compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/test2.lisp", (err, tokens) ->
-      #  object = comp
+    it 'should be able to compile code with nesting', (done) ->
+      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/test2.lisp", (err, tokens) ->
+        object = compiler.LexicalAnalyzer.compile tokens
 
-    xit 'should be able to compile the code across many lines.', (done) ->
+        expect(object[0].tokens.length).to.be 3
+
+        expect(object[0].tokens[0].token).to.be '+'
+        expect(object[0].tokens[1].tokens[0].token).to.be 'a'
+        expect(object[0].tokens[2].tokens[0].token).to.be 'b' 
+
+        done()
+
+    it 'should be able to compile the code across many lines.', (done) ->
       compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/if-else.lisp", (err, tokens) ->
         object = compiler.LexicalAnalyzer.compile tokens
 
-        expect(object[0].length).to.be 3
+        expect(object[0].tokens.length).to.be 4
 
-        expect(object[0][0]).to.be.a 'string'
-        expect(object[0][0].token).to.be 'if'
+        expect(object[0].tokens[0]).to.have.property 'token'
+        expect(object[0].tokens[0].token).to.be 'if'
 
-        expect(object[0][1]).to.be.an 'array'
+        expect(object[0].tokens[1].tokens).to.be.an 'array'
+        expect(object[0].tokens[1].tokens.length).to.be 3
+
+        expect(object[0].tokens[1].tokens[0]).to.have.property 'token'
+        expect(object[0].tokens[1].tokens[0].token).to.be '<'
+
+        expect(object[0].tokens[1].tokens[1].tokens).to.be.an 'array'
+        expect(object[0].tokens[1].tokens[1].tokens.length).to.be 2
+
+        expect(object[0].tokens[1].tokens[1].tokens[0]).to.have.property 'token'
+        expect(object[0].tokens[1].tokens[1].tokens[0].token).to.be 'args'
+
+        expect(object[0].tokens[1].tokens[1].tokens[1]).to.have.property 'token'
+        expect(object[0].tokens[1].tokens[1].tokens[1].token).to.be '0'
+
+        expect(object[0].tokens[1].tokens[2].tokens).to.be.an 'array'
+        expect(object[0].tokens[1].tokens[2].tokens.length).to.be 2
+
+        expect(object[0].tokens[1].tokens[2].tokens[0]).to.have.property 'token'
+        expect(object[0].tokens[1].tokens[2].tokens[0].token).to.be 'args'
+
+        expect(object[0].tokens[1].tokens[2].tokens[1]).to.have.property 'token'
+        expect(object[0].tokens[1].tokens[2].tokens[1].token).to.be '1'
+
+        expect(object[0].tokens[2].tokens).to.be.an 'array'
+        expect(object[0].tokens[2].tokens.length).to.be 2
+
+        expect(object[0].tokens[2].tokens[0]).to.have.property 'token'
+        expect(object[0].tokens[2].tokens[0].token).to.be 'log'
+
+        expect(object[0].tokens[2].tokens[1]).to.have.property 'token'
+        expect(object[0].tokens[2].tokens[1].token).to.be '"First is greater."'
+
+        expect(object[0].tokens[3].tokens).to.be.an 'array'
+        expect(object[0].tokens[3].tokens.length).to.be 2
+
+        expect(object[0].tokens[3].tokens[0]).to.have.property 'token'
+        expect(object[0].tokens[3].tokens[0].token).to.be 'log'
+
+        expect(object[0].tokens[3].tokens[1]).to.have.property 'token'
+        expect(object[0].tokens[3].tokens[1].token).to.be '"Second is greater."'
+
+        done()
+
+    it 'should be able to compile function calls', (done) ->
+      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/define.lisp", (err, tokens) ->
+        object = compiler.LexicalAnalyzer.compile tokens
+
+        expect(object[0].type).to.be 'function'
+        expect(object[0].name).to.be 'display-something'
+        expect(object[0].params).to.eql ['val1', 'val2']
+
+        expect(object[1].type).to.be 'instructions'
+
+        done()
+
+    it 'should be able to compile functions with no parameters', (done) ->
+      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/variable.lisp", (err, tokens) ->
+        object = compiler.LexicalAnalyzer.compile tokens
+
+        expect(object[0].type).to.be 'function'
+        expect(object[0].name).to.be 'some-var'
+        expect(object[0].params).to.eql []
+
+        expect(object[1].type).to.be 'instructions'
+
+        done()
+
+    it 'should be able to link code', (done) ->
+      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/hello-world.lisp", (err, tokens) ->
+        object = compiler.LexicalAnalyzer.compile tokens
+        output = compiler.LexicalAnalyzer.link object
+
+        console.log output
 
         done()

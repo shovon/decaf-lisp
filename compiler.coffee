@@ -26,15 +26,16 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
     tokens = []
 
     charCount = 0
-    for word in spacesAndChars
-      if word[0] isnt ' '
-        if word[0] is ';'
-          break
-        tokens.push
-          token: word
-          column: charCount
+    unless spacesAndChars == null
+      for word in spacesAndChars
+        if word[0] isnt ' '
+          if word[0] is ';'
+            break
+          tokens.push
+            token: word
+            column: charCount
 
-      charCount += word.length
+        charCount += word.length
 
     return tokens
 
@@ -56,8 +57,26 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
   @compile: (tokens) ->
     compiledTokens = []
 
-    interpretDefine = (tokens) ->
-      throw new Error "Not yet implemented."
+    interpretParams = (tokens) ->
+      retVal = []
+
+      i = 0
+      while i < tokens.length
+        token = tokens[i]
+        if token.token is ')'
+          return [retVal, i]
+        else if token.token is '('
+          console.log "Hmm..."
+          throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '('"
+        else if /^[a-zA-Z]([a-zA-Z0-9]+)?/.test token.token
+          retVal.push token.token
+        else
+          #console.log "Hmm..."
+          throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '#{token.token}'"
+
+        i++
+
+      throw new Error "Unexpected end of code"
 
     interpretCall = (tokens) ->
       retVal = []
@@ -66,20 +85,14 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
       while i < tokens.length
         token = tokens[i]
         if token.token is ')'
-          retVal.type = 'instructions'
-          return [retVal, i + 1]
+          return [{ tokens: retVal }, i + 1]
 
         else if token.token is '('
-          #console.log i
-          #console.log tokens.slice i + 1
-          [newTokens, i] = interpretCall tokens.slice i + 1
-          #console.log i
-          #console.log tokens.slice i + 1
-          #console.log newTokens
-          #throw new Error
+          [newTokens, j] = interpretCall tokens.slice i + 1
+          i += j
           retVal.push newTokens
-
         else
+          token.type = 'token'
           retVal.push token
 
         i++
@@ -93,14 +106,49 @@ LexicalAnalyzer = class module.exports.LexicalAnalyzer
       token = tokens[i]
 
       if token.token isnt '('
-        throw new Error "Error on line #{token.line}, column #{token.column}: Unexpected '#{token.token}'"
+        throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '#{token.token}'"
 
-      if token[i + 1] is 'define'
-        [newTokens, i] = interpretDefinition tokens.slice i + 2
+      if tokens[i + 1].token is 'defun'
+        params = []
+        funcName = tokens[i + 2].token
+        [params, j] = interpretParams tokens.slice i + 4
+
+        i += j + 5
+
+        [newTokens, j] = interpretCall tokens.slice i + 1
+
+        newTokens.name = funcName
+        newTokens.params = params
+        newTokens.type = 'function'
+
+        i += j
       else
-        [newTokens, i] = interpretCall tokens.slice i + 1
+        [newTokens, j] = interpretCall tokens.slice i + 1
+        newTokens.type = 'instructions'
+        i += j
       compiledTokens.push newTokens
       
       i++
 
     return compiledTokens
+
+  @link: (objectCode) ->
+    finalStr = ''
+
+    parseCall = (call) ->
+      console.log call
+      if call.type is 'token'
+        finalStr = finalStr + "func['#{call.token}']("
+      else if call.type is 'instructions'
+        for c in call.tokens
+          parseCall c
+
+      finalStr += ')'
+      
+      return finalStr
+
+    for call in objectCode
+      if call.type is 'instructions'
+        parseCall call
+
+    return finalStr
