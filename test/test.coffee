@@ -1,6 +1,7 @@
 expect = require 'expect.js'
 compiler = require '../compiler.coffee'
 fs = require 'fs'
+AnonymousToken = require '../AnonymousToken.coffee'
 
 describe 'Splitter', ->
   describe 'splitLine', ->
@@ -67,3 +68,15 @@ describe 'Splitter', ->
         { columnNum: 13, lineNum: 2, name: 'some-var' }
         { columnNum: 21, lineNum: 2, name: ')' }
       ]
+
+describe 'Analyzer', ->
+  it 'should successfully analyze any string that contain nothing but valid code.', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/hello-world.lisp", "utf8"
+    tokens = compiler.analyze tokens
+
+    expect(tokens._tokens).to.eql [
+      { columnNum: 0, lineNum: 0, type: AnonymousToken.types.OPENING }
+      { columnNum: 1, lineNum: 0, type: AnonymousToken.types.IDENTIFIER, name: 'console-log' }
+      { columnNum: 13, lineNum: 0, type: AnonymousToken.types.STRING, value: '"Hello, World!"' }
+      { columnNum: 28, lineNum: 0, type: AnonymousToken.types.CLOSING }
+    ]

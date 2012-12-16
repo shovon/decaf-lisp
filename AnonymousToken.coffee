@@ -15,17 +15,21 @@ module.exports = class AnonymousToken extends Token
   ]
 
   @types: {}
+  @_typesNum: {}
 
-  for type, i in nonAnonTypes.concat anonTypes
+  for type, i in types
     @types[type] = i
+    @_typesNum[i] = type
 
   constructor: (token) ->
     @lineNum = token.lineNum
     @columnNum = token.columnNum
 
-    assert token.name?
 
-    identifierRegExp = new RegExp "^#{compilerRegExp.identifierStr}$"
+    if not token.name?
+      throw new Error "Fatal error: token does not have a name."
+
+    identifierRegExp = new RegExp "^#{compilerRegExp.identifierStr}+$"
     stringRegExp = new RegExp "^#{compilerRegExp.stringStr}$"
     numberRegExp = /^[0-9]/
 
@@ -45,7 +49,8 @@ module.exports = class AnonymousToken extends Token
     else if token.name is '('
       @type = AnonymousToken.types.OPENING
     else if token.name is ')'
-      @type = Anonymous
+      @type = AnonymousToken.types.CLOSING
+    else
+      throw new SyntaxError token, "unknown token #{token.name}"
 
-    assert @type?
-    assert Anonymous.types[@type]?
+    assert AnonymousToken._typesNum[@type]?

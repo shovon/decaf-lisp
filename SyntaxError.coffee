@@ -1,3 +1,5 @@
-class module.exports.SyntaxError extends Error
+module.exports = class SyntaxError extends Error
   constructor: (token, message = '') ->
-    super "Error on line #{token.line}, column #{token.column + 1}: #{message}"
+    err = Error.call this, "Error on line #{token.lineNum + 1}, column #{token.columnNum + 1}: #{message}"
+    err.name = "SyntaxError"
+    return err
