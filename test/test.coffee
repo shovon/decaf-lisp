@@ -80,3 +80,30 @@ describe 'Analyzer', ->
       { columnNum: 13, lineNum: 0, type: AnonymousToken.types.STRING, value: '"Hello, World!"' }
       { columnNum: 28, lineNum: 0, type: AnonymousToken.types.CLOSING }
     ]
+
+  it 'should successfully analyze code that has function definitions in them', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/variable.lisp", "utf8"
+    tokens = compiler.analyze tokens
+
+    expect(tokens._tokens).to.eql [
+      { lineNum: 0, columnNum: 0, type: AnonymousToken.types.OPENING }
+      { lineNum: 0, columnNum: 1, type: AnonymousToken.types.KEYWORD, name: 'defun' }
+      { lineNum: 0, columnNum: 7, type: AnonymousToken.types.IDENTIFIER, name: 'some-var' }
+      { lineNum: 0, columnNum: 16, type: AnonymousToken.types.OPENING }
+      { lineNum: 0, columnNum: 17, type: AnonymousToken.types.CLOSING }
+      { lineNum: 0, columnNum: 19, type: AnonymousToken.types.NUMBER, value: '1' }
+      { lineNum: 0, columnNum: 20, type: AnonymousToken.types.CLOSING }
+      { lineNum: 2, columnNum: 0, type: AnonymousToken.types.OPENING }
+      { lineNum: 2, columnNum: 1, type: AnonymousToken.types.IDENTIFIER, name: 'console-log' }
+      { lineNum: 2, columnNum: 13, type: AnonymousToken.types.IDENTIFIER, name: 'some-var' }
+      { lineNum: 2, columnNum: 21, type: AnonymousToken.types.CLOSING }
+    ]
+
+  ###
+  it 'should successfully analyze code that has lambda expressions in them', ->
+    tokens = compiler.split "(defun something lambda another)"
+
+    expect(tokens._tokens).to.eql [
+
+    ]
+  ###

@@ -1,6 +1,6 @@
 {
-  "name": "prog-lang",
-  "description": "Practicing to write a programming language.",
+  "name": "decaf-lisp",
+  "description": "An insanely ugly dialect of LISP.",
   "version": "0.0.1",
   "private": true,
   "scripts": {
