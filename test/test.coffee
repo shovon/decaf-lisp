@@ -99,11 +99,38 @@ describe 'Analyzer', ->
       { lineNum: 2, columnNum: 21, type: AnonymousToken.types.CLOSING }
     ]
 
-  ###
   it 'should successfully analyze code that has lambda expressions in them', ->
     tokens = compiler.split "(defun something lambda another)"
+    tokens = compiler.analyze tokens
 
     expect(tokens._tokens).to.eql [
-
+      { lineNum: 0, columnNum: 0, type: AnonymousToken.types.OPENING }
+      { lineNum: 0, columnNum: 1, type: AnonymousToken.types.KEYWORD, name: 'defun' }
+      { lineNum: 0, columnNum: 7, type: AnonymousToken.types.IDENTIFIER, name: 'something' }
+      { lineNum: 0, columnNum: 17, type: AnonymousToken.types.KEYWORD, name: 'lambda' }
+      { lineNum: 0, columnNum: 24, type: AnonymousToken.types.IDENTIFIER, name: 'another' }
+      { lineNum: 0, columnNum: 31, type: AnonymousToken.types.CLOSING }
     ]
-  ###
+
+describe 'Scoper', ->
+  it 'should scope valid "(console-log \"Hello, World!\")".', ->
+    tokens = compiler.split '(console-log "Hello, World!")'
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
+
+    expect(scopes).to.eql [
+      [
+        {
+          lineNum: 0
+          columnNum: 1
+          type: AnonymousToken.types.IDENTIFIER
+          name: 'console-log'
+        }
+        {
+          lineNum: 0
+          columnNum: 13
+          type: AnonymousToken.types.STRING
+          value: '"Hello, World!"'
+        }
+      ]
+    ]

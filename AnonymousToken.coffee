@@ -19,9 +19,30 @@ module.exports = class AnonymousToken extends Token
   @types: {}
   @_typesNum: {}
 
-  for type, i in types
-    @types[type] = i
-    @_typesNum[i] = type
+  for type in types
+    @types[type] = type
+
+  @getOriginal: (token) ->
+    if not token instanceof AnonymousToken
+      throw new Error "token must be an instance of AnonymousToken"
+
+    if not @types[token.type]?
+      throw new Error "Invalid token type."
+
+    if token.type is @types.STRING or token.type is @types.NUMBER
+      return token.value
+    else if token.type is @types.IDENTIFIER or token.type is @types.KEYWORD
+      return token.name
+    else if token.type is @types.OPENING
+      return '('
+    else if token.type is @types.CLOSING
+      return ')'
+    else if token.type is @types.BOOL_TRUE
+      return 'true'
+    else if token.type is @types.BOOL_FALSE
+      return 'false'
+
+    assert false
 
   constructor: (token) ->
     @lineNum = token.lineNum
@@ -57,4 +78,4 @@ module.exports = class AnonymousToken extends Token
     else
       throw new SyntaxError token, "unknown token #{token.name}"
 
-    assert AnonymousToken._typesNum[@type]?
+    assert AnonymousToken.types[@type]?
