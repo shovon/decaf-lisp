@@ -191,30 +191,57 @@ module.exports.compile = compile = (scopes) ->
   return objCode
 
 module.exports.link = (objectCode) ->
+  predefinedFunctions = {}
+  predefinedFunctions["if"] = (condition, val1, val2) ->
+    if condition
+      return val1
+    else
+      return val2
+  predefinedFunctions["<"] = (left, right) ->
+    return left < right
+  predefinedFunctions["arg"] = (index) ->
+    return process.argv[index]
+  predefinedFunctions["num"] = (str) ->
+    parseInt str, 10
+  # TODO: use the actual function name.
+  predefinedFunctions["console-log"] = (arg) ->
+    console.log arg
+
+  functionsToDefine = []
+
   outputFunctionCall = (token) ->
     if not token.name?
       throw new Error "Token's name is not defined."
+    if predefinedFunctions[token.name]?
+      unless _.contains functionsToDefine, token.name
+        functionsToDefine.push token.name
+      return "predefined['#{token.name}']"
+
     return "func['#{token.name}']"
 
-  outputExpressions = (scope) ->
+  outputExpressions = (scope, parameters = []) ->
     retval = ''
     # That means the function might be a lambda expression
     if _.isArray scope.scopes[0].scopes
-      retval += outputExpressions scope.scopes[0]
+      retval += outputExpressions scope.scopes[0], parameters
     else
       retval += outputFunctionCall scope.scopes[0]
 
     retval += '('
 
+    # Not to be confused with the above "`parameters`" parameters.
     parametersList = []
 
     for expression in scope.scopes.slice 1
       if _.isArray expression.scopes
-        parametersList.push outputExpressions expression
+        parametersList.push outputExpressions expression, parameters
       else if AnonymousToken.isConstant expression
         parametersList.push AnonymousToken.getOriginal expression
       else if expression.name?
-        parametersList.push expression.name
+        if _.contains parameters, expression.name
+          parametersList.push expression.name
+        else
+          parametersList.push "#{outputFunctionCall expression}()"
 
     retval += parametersList.join ', '
 
@@ -224,7 +251,7 @@ module.exports.link = (objectCode) ->
 
   outputFunction = (scope) ->
     functionBody = "function (#{scope.parameters.join ', '}) {\n"
-    functionBody += "  return #{outputExpressions scope.scopes[0]};\n"
+    functionBody += "  return #{outputExpressions scope.scopes[0], scope.parameters};\n"
     functionBody += "};\n\n"
     return functionBody
 
@@ -242,5 +269,12 @@ module.exports.link = (objectCode) ->
 
   if functionsDefined
     codeOutput = "var func = {};\n\n#{codeOutput}"
+  
+  if functionsToDefine.length
+    predefinedCode = "var predefined = {};\n"
+    for funcName in functionsToDefine
+      predefinedCode = "#{predefinedCode}predefined['#{funcName}'] = #{predefinedFunctions[funcName].toString()};\n"
+
+    codeOutput = "#{predefinedCode}#{codeOutput}"
 
   return codeOutput
