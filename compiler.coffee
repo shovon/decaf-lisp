@@ -191,9 +191,6 @@ module.exports.compile = compile = (scopes) ->
   return objCode
 
 module.exports.link = (objectCode) ->
-  functionsDefined = false
-  codeOutput = ''
-
   outputFunctionCall = (token) ->
     if not token.name?
       throw new Error "Token's name is not defined."
@@ -209,7 +206,6 @@ module.exports.link = (objectCode) ->
 
     retval += '('
 
-    debugger
     parametersList = []
 
     for expression in scope.scopes.slice 1
@@ -224,7 +220,7 @@ module.exports.link = (objectCode) ->
 
     retval += ')'
 
-    return retval
+    return retval  
 
   outputFunction = (scope) ->
     functionBody = "function (#{scope.parameters.join ', '}) {\n"
@@ -232,10 +228,19 @@ module.exports.link = (objectCode) ->
     functionBody += "};\n\n"
     return functionBody
 
+  functionsDefined = false
+  codeOutput = ''
+
   for scope in objectCode.scopes
     if scope.type is Scope.types.FUNCTION_DEFINITION
       functionsDefined = true
       codeOutput = codeOutput + "func['#{scope.functionName}']"
       codeOutput = codeOutput + " = #{outputFunction scope}"
+    else if scope.type is Scope.types.EXPRESSION
+      debugger
+      codeOutput = codeOutput + "#{outputExpressions scope};\n"
+
+  if functionsDefined
+    codeOutput = "var func = {};\n\n#{codeOutput}"
 
   return codeOutput
