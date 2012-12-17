@@ -3,4 +3,4 @@
     "First is smaller"
     "Second is smaller")))
 
-(display-something (num (arg 3)) (num (arg 4)))
+(display-something (num (arg 2)) (num (arg 3)))
