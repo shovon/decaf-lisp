@@ -22,6 +22,17 @@ module.exports = class AnonymousToken extends Token
   for type in types
     @types[type] = type
 
+  @getTypeName: (type) ->
+    if type is AnonymousToken.types.OPENING
+      return 'opening brace'
+    else if type is AnonymousToken.types.CLOSING
+      return 'closing brace'
+    else if type is AnonymousToken.types.BOOL_TRUE or
+    type is AnonymousToken.types.BOOL_FALSE
+      return 'boolean'
+    
+    return type.toLowerCase()
+
   @getOriginal: (token) ->
     if not token instanceof AnonymousToken
       throw new Error "token must be an instance of AnonymousToken"

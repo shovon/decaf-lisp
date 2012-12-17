@@ -113,7 +113,7 @@ describe 'Analyzer', ->
     ]
 
 describe 'Scoper', ->
-  it 'should scope valid "(console-log \"Hello, World!\")".', ->
+  it 'should scope "(console-log "Hello, World!")".', ->
     tokens = compiler.split '(console-log "Hello, World!")'
     tokens = compiler.analyze tokens
     scopes = compiler.scope tokens
@@ -134,3 +134,31 @@ describe 'Scoper', ->
         }
       ]
     ]
+
+describe 'Compiler', ->
+  it 'should compile "(console-log "Hello, World")"', ->
+    tokens = compiler.split '(console-log "Hello, World!")'
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
+    objectCode = compiler.compile scopes
+
+    console.log JSON.stringify objectCode, null, "  "
+
+  it 'should compile code with more than one expressions, and at least one function definition', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/define.lisp", 'utf8'
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
+    objectCode = compiler.compile scopes
+
+    console.log JSON.stringify objectCode, null, " "
+
+describe 'Linker', ->
+  it 'should compile and link some valid DecafLISP code.', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/define.lisp", "utf8"
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
+    objectCode = compiler.compile scopes
+
+    code = compiler.link objectCode
+
+    console.log code
