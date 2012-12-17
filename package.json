@@ -1,8 +1,19 @@
 {
   "name": "decaf-lisp",
   "description": "An insanely ugly dialect of LISP.",
-  "version": "0.0.1",
-  "private": true,
+  "keywords": ["lisp", "language", "useless"],
+  "author": "Salehen Shovon Rahman",
+  "version": "0.0.5",
+  "licenses": [{
+    "type": "MIT",
+    "url": "https://raw.github.com/shovon/decaf-lisp/master/LICENSE"
+  }],
+  "engines": {
+    "node": ">=0.6.0"
+  },
+  "bin": {
+    "decaf-lisp": "./bin/decaf-lisp"
+  },
   "scripts": {
     "test": "mocha"
   },

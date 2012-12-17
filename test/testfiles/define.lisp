@@ -1,6 +1,6 @@
 (defun display-something (val1 val2)
-  (if (< val1 val2)
-    (console-log "First is greater")
-    (console-log "Second is greater")))
+  (console-log (if (< val1 val2) ; if val1 < val2
+    "First is smaller"
+    "Second is smaller")))
 
-(display-something (arg 1) (arg 2))
+(display-something (num (arg 3)) (num (arg 4)))

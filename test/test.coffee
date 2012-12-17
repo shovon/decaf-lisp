@@ -2,6 +2,7 @@ expect = require 'expect.js'
 compiler = require '../compiler.coffee'
 fs = require 'fs'
 AnonymousToken = require '../AnonymousToken.coffee'
+child_process = require 'child_process'
 
 describe 'Splitter', ->
   describe 'splitLine', ->
@@ -154,7 +155,7 @@ describe 'Compiler', ->
     #console.log JSON.stringify objectCode, null, " "
 
 describe 'Linker', ->
-  it 'should compile and link some valid DecafLISP code.', ->
+  it 'should compile and link some valid DecafLISP code.', (done) ->
     tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/define.lisp", "utf8"
     tokens = compiler.analyze tokens
     scopes = compiler.scope tokens
@@ -162,4 +163,14 @@ describe 'Linker', ->
 
     code = compiler.link objectCode
 
-    console.log code
+    fs.writeFileSync "#{__dirname}/testfiles/__outputcode.js", code, 'utf8'
+    node = child_process.spawn 'node', ["#{__dirname}/testfiles/__outputcode.js", 5, 6]
+    accumulatedStdout = ''
+    node.stdout.on 'data', (data) ->
+      accumulatedStdout += data.toString 'utf8'
+    node.stderr.on 'data', (data) ->
+      accumulatedStdout += data.toString 'utf8'
+    node.on 'exit', ->
+      fs.unlinkSync "#{__dirname}/testfiles/__outputcode.js"
+      expect(accumulatedStdout).to.be 'First is smaller\n'
+      done()
