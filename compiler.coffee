@@ -1,196 +1,246 @@
 Lazy = require 'lazy'
 carrier = require 'carrier'
 fs = require 'fs'
+Token = require './Token.coffee'
+TokenWithColumnNumber = require './TokenWithColumnNumber.coffee'
+TokenWithLineNumber = require './TokenWithLineNumber.coffee'
+TokensList = require './TokensList.coffee'
+compilerRegExp = require './compilerRegExp.coffee'
+SyntaxError = require './SyntaxError.coffee'
+AnonymousToken = require './AnonymousToken.coffee'
+Scope = require './Scope.coffee'
+_ = require 'underscore'
+assert = require 'assert'
 
-stringRegExp = "(" +
-  "'[^'\\\\]*(?:\\\\.[^'\\\\]*)*'" +
-  '|"[^"\\\\]*(?:\\\\.[^"\\\\]*)*"' +
-")"
+###
+This is only to split a single line of code. **Don't use this on multi-line
+strings**.
 
-identifierRegExp = "[a-zA-Z0-9\\+><\\-_]"
+@param string code, can be anything without any multi-lines.
 
-class SyntaxError extends Error
-  initialize: (token, message = '') ->
-    super "Error on line #{token.line}, column #{token.column + 1}: #{message}"
+@throws an error whenever code contains a new line character.
 
-LexicalAnalyzer = class module.exports.LexicalAnalyzer
-  @tokenizeLine: (line) ->
+@returns an instance of `TokensList`
 
-    spacesAndChars = line.match new RegExp(
-      "\\s+" +
-      "|\\(" +
-      "|\\)" +
-      "|;" +
-      "|(" +
-        identifierRegExp +
-        "|" + stringRegExp +
-      ")+" +
-      "|."
-    , "g")
+@seealso `split`
+@seealso `TokensList.coffee`
+###
+module.exports.splitLine = splitLine = (code) ->
+  if /(\r|\r)/.test code
+    throw new Error "There should not be any new line characters in the code."
 
-    tokens = []
+  tokens = code.match compilerRegExp.spacesAndChars
 
+  retVal = []
+
+  unless tokens is null
     charCount = 0
-    unless spacesAndChars == null
-      for word in spacesAndChars
-        if word[0] isnt ' '
-          if word[0] is ';'
-            break
-          tokens.push
-            token: word
-            column: charCount
+    for token in tokens
+      if token is ';'
+        break
+      if not /^\s+$/.test token
+        retVal.push(
+          new TokenWithColumnNumber new Token(token), charCount
+        )
+      charCount += token.length
 
-        charCount += word.length
+  return new TokensList retVal
 
-    return tokens
+###
+This will split an entire string into appropriate tokens.
+###
+module.exports.split = split = (code) ->
+  lines = code.split /\r?\n/
 
-  @analyze: (filename, callback) ->
-    lineCount = 0
+  tokensList = new TokensList
 
-    retVal = []
+  for line, i in lines
+    tokens = splitLine line
+    tokens.convert (token) ->
+      return new TokenWithLineNumber token, i
+    tokensList.concatenate tokens
 
-    carryInfo = carrier.carry (fs.createReadStream filename), (line) ->
-      lineCount++
-      tokens = LexicalAnalyzer.tokenizeLine line
-      for token in tokens
-        token.line = lineCount
-        retVal.push token
+  return tokensList
 
-    carryInfo.on 'end', ->
-      callback null, retVal
+###
+Analyzes a list of tokens, and returns the tokens into anonymous tokens.
 
-  @compile: (tokens) ->
-    compiledTokens = []
+@returns TokensList with all the tokens converted into AnonymousToken
+###
+module.exports.analyze = analyze = (tokens) ->
+  tokens.convert (token) ->
+    return new AnonymousToken token
 
-    interpretParams = (tokens) ->
-      retVal = []
+  return tokens
 
-      i = 0
-      while i < tokens.length
-        token = tokens[i]
-        if token.token is ')'
-          return [retVal, i]
-        else if token.token is '('
-          throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '('"
-        else if /^[a-zA-Z]([a-zA-Z0-9]+)?/.test token.token
-          retVal.push token.token
-        else
-          throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '#{token.token}'"
-
-        i++
-
-      throw new Error "Unexpected end of code"
-
-    interpretCall = (tokens) ->
-      retVal = []
-
-      i = 0
-      while i < tokens.length
-        token = tokens[i]
-        if token.token is ')'
-          return [{ tokens: retVal }, i + 1]
-
-        else if token.token is '('
-          [newTokens, j] = interpretCall tokens.slice i + 1
-          i += j
-          retVal.push newTokens
-        else
-          strReg = new RegExp "^#{stringRegExp}$"
-          numberReg = /^[0-9]/
-          identifierReg = new RegExp "^#{identifierRegExp}+$"
-
-          if strReg.test(token.token) or numberReg.test(token.token)
-            token.type = 'literal'
-          else if identifierReg.test token.token
-            token.type = 'identifier'
-          retVal.push token
-
-        i++
-
-      # The for loop should not have ended. This means that there was a missing
-      # closing parenthesis.
-      throw new Error "Unexpected end of code."
+module.exports.scope = scope = (tokens) ->
+  parseScope = (tokens) ->
+    retval = []
 
     i = 0
     while i < tokens.length
       token = tokens[i]
-
-      if token.token isnt '('
-        throw new Error "Error on line #{token.line}, column #{token.column + 1}: unexpected '#{token.token}'"
-
-      if tokens[i + 1].token is 'defun'
-        params = []
-        funcName = tokens[i + 2].token
-        [params, j] = interpretParams tokens.slice i + 4
-
-        i += j + 4
-
-        [newTokens, j] = interpretCall tokens.slice i + 1
-
-        newTokens.name = funcName
-        newTokens.params = params
-        newTokens.type = 'function'
-
-        console.log newTokens.name
-        console.log tokens.slice i
-
-        i += j
+      if token.type is AnonymousToken.types.OPENING
+        [scope, j] = parseScope tokens.slice i + 1
+        i += j + 1
+        retval.push scope
+      else if token.type is AnonymousToken.types.CLOSING
+        return [retval, i]
       else
-        [newTokens, j] = interpretCall tokens.slice i + 1
-        newTokens.type = 'instructions'
-        i += j
-      compiledTokens.push newTokens
-      
+        retval.push token
+
       i++
 
-    return compiledTokens
+    throw new SyntaxError tokens[i - 1], "unexpected end of code."
 
-  @link: (objectCode) ->
-    builtInFunctions =
-      "console-log": "console.log"
+  retval = []
 
-    finalStr = ''
+  i = 0
+  while i < tokens._tokens.length
+    token = tokens._tokens[i]
+    if token.type isnt AnonymousToken.types.OPENING
+      throw new SyntaxError token, "unexpected token"
 
-    parseCall = (call) ->
-      #console.log call.tokens
-      getFunctionCall = (token) ->
-        if builtInFunctions[token.token]?
-          return "#{builtInFunctions[token.token]}("
-        else
-          return "func['#{token.token}']("
+    [scope, j] = parseScope tokens._tokens.slice i + 1
+    i += j + 1
+    retval.push scope
 
-      outputParameter = (token) ->
-        if token.type is 'literal'
-          finalStr = finalStr + token.token
-        else if token.type is 'identifier'
-          finalStr = finalStr + "#{getFunctionCall token})"
-        else if token.type is 'instructions'
-          throw new Error "Not yet implemented."
+    i++
 
-      # Evaluate the first expression. This represents the function call.
-      if call.tokens[0].type is 'literal'
-        throw new SyntaxError call.tokens[0], "unexpected literal."
+  return retval
+
+###
+Compiles a list of tokens into object code.
+###
+module.exports.compile = compile = (scopes) ->
+  #throw new Error "Not yet implemented."
+  parseScope = (scope) ->
+    newScope = null
+
+    if scope[0] instanceof AnonymousToken and
+    scope[0].type is AnonymousToken.types.KEYWORD and
+    scope[0].name is 'defun' or scope[0].name is 'lambda'
+      offset = if scope[0].name is 'defun' then 1 else 0
+      if scope.length > 3 + offset
+        throw new SyntaxError scope[0], "malformed function."
+      functionName = null
+
+      if scope[0].name is 'defun'
+        if scope[1].type isnt AnonymousToken.types.IDENTIFIER
+          throw new SyntaxError scope[0], "expected a function name"
+
+        functionName = scope[1].name
+
+      if not _.isArray scope[1 + offset]
+        throw new SyntaxError scope[1 + offset], "unexpected token #{AnonymousToken.getOriginal scope[1 + offset]}. Expecting '('"
+      if not _.isArray scope[2 + offset]
+        throw new SyntaxError scope[2 + offset], "unexpected token #{AnonymousToken.getOriginal scope[2 + offset]}"
+
+      parameters = []
+
+      parameterRegExp = /^[^0-9\-\+\\\*\(\)\[\]\{\}\/\,\.'"\!@\#%\^\&\=\?;\s]([^\-\+\\\*\(\)\[\]\{\}\/\,\.'"\!@\#%\^\&\=\?;\s]+)?$/
+      for element in scope[1 + offset]
+        if element.type isnt AnonymousToken.types.IDENTIFIER
+          throw new SyntaxError element, "unexpected token #{AnonymousToken.getTypeName element.type}, #{AnonymousToken.getOriginal element}"
+
+        if not parameterRegExp.test element.name
+          throw new SyntaxError element, "illegal character in parameter name."
+
+        parameters.push element.name
+
+      scopeType = ''
+      scopeType = Scope.types.FUNCTION_DEFINITION if scope[0].name is 'defun'
+      scopeType = Scope.types.LAMBDA_EXPRESSION if scope[0].name is 'lambda'
       
-      if call.tokens[0].type is 'identifier'
-        finalStr = finalStr + getFunctionCall call.tokens[0]
+      options = { parameters: parameters }
 
-      if call.tokens.length >= 2
-        for i in [1...call.tokens.length - 1]
-          param = call.tokens[i]
-          outputParameter param
-          finalStr = finalStr + ','
+      if scopeType is Scope.types.FUNCTION_DEFINITION
+        assert functionName
+        options.functionName = functionName
 
-        outputParameter call.tokens[call.tokens.length - 1]
+      newScope = new Scope scopeType, options
 
-      finalStr = finalStr + ')'
+      scope = scope.slice 2 + offset
+    else
+      newScope = new Scope Scope.types.EXPRESSION
 
-    for obj in objectCode
-      if obj.type is 'instructions'
-        parseCall obj
-        finalStr = finalStr + ';\n'
+    if newScope == null
+      throw new Error "Unknown error."
 
-      else if obj.type is 'function'
-        parseCall obj
-        finalStr = finalStr + ';\n'
+    for element in scope
+      if _.isArray element
+        newScope.push parseScope element
 
-    return finalStr
+      # TODO: error out if there is a keyword.
+      else if element instanceof AnonymousToken
+        newScope.push element
+
+      else
+        throw new Error "unknown error."
+
+    return newScope
+
+  objCode = new Scope Scope.types.EXPRESSION
+
+  for scope in scopes
+    if not _.isArray scope
+      throw new Error "The scope is not an array."
+
+    objCode.push parseScope scope
+
+  return objCode
+
+module.exports.link = (objectCode) ->
+  outputFunctionCall = (token) ->
+    if not token.name?
+      throw new Error "Token's name is not defined."
+    return "func['#{token.name}']"
+
+  outputExpressions = (scope) ->
+    retval = ''
+    # That means the function might be a lambda expression
+    if _.isArray scope.scopes[0].scopes
+      retval += outputExpressions scope.scopes[0]
+    else
+      retval += outputFunctionCall scope.scopes[0]
+
+    retval += '('
+
+    parametersList = []
+
+    for expression in scope.scopes.slice 1
+      if _.isArray expression.scopes
+        parametersList.push outputExpressions expression
+      else if AnonymousToken.isConstant expression
+        parametersList.push AnonymousToken.getOriginal expression
+      else if expression.name?
+        parametersList.push expression.name
+
+    retval += parametersList.join ', '
+
+    retval += ')'
+
+    return retval  
+
+  outputFunction = (scope) ->
+    functionBody = "function (#{scope.parameters.join ', '}) {\n"
+    functionBody += "  return #{outputExpressions scope.scopes[0]};\n"
+    functionBody += "};\n\n"
+    return functionBody
+
+  functionsDefined = false
+  codeOutput = ''
+
+  for scope in objectCode.scopes
+    if scope.type is Scope.types.FUNCTION_DEFINITION
+      functionsDefined = true
+      codeOutput = codeOutput + "func['#{scope.functionName}']"
+      codeOutput = codeOutput + " = #{outputFunction scope}"
+    else if scope.type is Scope.types.EXPRESSION
+      debugger
+      codeOutput = codeOutput + "#{outputExpressions scope};\n"
+
+  if functionsDefined
+    codeOutput = "var func = {};\n\n#{codeOutput}"
+
+  return codeOutput

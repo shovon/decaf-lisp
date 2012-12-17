@@ -1,162 +1,165 @@
 expect = require 'expect.js'
 compiler = require '../compiler.coffee'
+fs = require 'fs'
+AnonymousToken = require '../AnonymousToken.coffee'
 
-describe 'Lexer', ->
-  describe 'tokenizer', ->
-    it 'should tokenize the string (+ apple banana)', ->
-      code = '(+ apple banana)'
-      tokens = compiler.LexicalAnalyzer.tokenizeLine code
-
-      expect(tokens.length).to.be 5
-
-      expect(tokens).to.eql [
-        {token: '(', column: 0}
-        {token: '+', column: 1}
-        {token: 'apple', column: 3}
-        {token: 'banana', column: 9}
-        {token: ')', column: 15}
-      ]
-    
-    it 'should tokenize the string (+ "apple" "banana")', ->
-      code = '(+ "apple" "banana")'
-      tokens = compiler.LexicalAnalyzer.tokenizeLine code
-
-      expect(tokens).to.eql [
-        {token: '(', column: 0}
-        {token: '+', column: 1}
-        {token: '"apple"', column: 3}
-        {token: '"banana"', column: 11}
-        {token: ')', column: 19}
+describe 'Splitter', ->
+  describe 'splitLine', ->
+    it 'should split "(+ a b)"', ->
+      tokens = compiler.splitLine '(+ a b)'
+      expect(tokens._tokens).to.eql [
+        { columnNum: 0, name: '(' }
+        { columnNum: 1, name: '+' }
+        { columnNum: 3, name: 'a' }
+        { columnNum: 5, name: 'b' }
+        { columnNum: 6, name: ')' }
       ]
 
-    it 'should tokenize the code from a file.', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/test1.lisp", (err, tokens) ->      
-        expect(tokens.length).to.be 5
+    it 'should split "(+ \"apple\" \"banana\")"', ->
+      tokens = compiler.splitLine '(+ "apple" "banana")'
+      expect(tokens._tokens).to.eql [
+        { columnNum: 0, name: '(' }
+        { columnNum: 1, name: '+' }
+        { columnNum: 3, name: '"apple"' }
+        { columnNum: 11, name: '"banana"' }
+        { columnNum: 19, name: ')' }
+      ]
 
-        expect(tokens).to.eql [
-          {token: '(', line: 1, column: 0}
-          {token: '+', line: 1, column: 1}
-          {token: 'a', line: 1, column: 3}
-          {token: 'b', line: 1, column: 5}
-          {token: ')', line: 1, column: 6}
-        ]
-        
-        done()
+    it 'should split "(+ , *)"', ->
+      tokens = compiler.splitLine '(+ , *)'
+      
+      expect(tokens._tokens).to.eql [
+        { columnNum: 0, name: '(' }
+        { columnNum: 1, name: '+' }
+        { columnNum: 3, name: ',' }
+        { columnNum: 5, name: '*' }
+        { columnNum: 6, name: ')' }
+      ]
 
-    it 'should be able to compile the code.', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/test1.lisp", (err, tokens) ->
-        object = compiler.LexicalAnalyzer.compile tokens
+    it 'should split "(+ (a) (b))"', ->
+      tokens = compiler.splitLine '(+ (a) (b))'
 
-        expect(object[0].type).to.be 'instructions'
-        expect(object[0].tokens[0].token).to.be '+'
-        expect(object[0].tokens[1].token).to.be 'a'
-        expect(object[0].tokens[2].token).to.be 'b'
+      expect(tokens._tokens).to.eql [
+        { columnNum: 0, name: '(' }
+        { columnNum: 1, name: '+' }
+        { columnNum: 3, name: '(' }
+        { columnNum: 4, name: 'a' }
+        { columnNum: 5, name: ')' }
+        { columnNum: 7, name: '(' }
+        { columnNum: 8, name: 'b' }
+        { columnNum: 9, name: ')' }
+        { columnNum: 10, name: ')' }
+      ]
 
-        done()
+  describe 'split', ->
+    it 'should split a string with multiple lines', ->
+      tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/variable.lisp", 'utf8'
 
-    it 'should be able to compile code with nesting', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/test2.lisp", (err, tokens) ->
-        object = compiler.LexicalAnalyzer.compile tokens
+      expect(tokens._tokens).to.eql [
+        { columnNum: 0, lineNum: 0, name: '(' }
+        { columnNum: 1, lineNum: 0, name: 'defun' }
+        { columnNum: 7, lineNum: 0, name: 'some-var' }
+        { columnNum: 16, lineNum: 0, name: '(' }
+        { columnNum: 17, lineNum: 0, name: ')' }
+        { columnNum: 19, lineNum: 0, name: '1' }
+        { columnNum: 20, lineNum: 0, name: ')' }
+        { columnNum: 0, lineNum: 2, name: '(' }
+        { columnNum: 1, lineNum: 2, name: 'console-log' }
+        { columnNum: 13, lineNum: 2, name: 'some-var' }
+        { columnNum: 21, lineNum: 2, name: ')' }
+      ]
 
-        expect(object[0].tokens.length).to.be 3
+describe 'Analyzer', ->
+  it 'should successfully analyze any string that contain nothing but valid code.', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/hello-world.lisp", "utf8"
+    tokens = compiler.analyze tokens
 
-        expect(object[0].tokens[0].token).to.be '+'
-        expect(object[0].tokens[1].tokens[0].token).to.be 'a'
-        expect(object[0].tokens[2].tokens[0].token).to.be 'b' 
+    expect(tokens._tokens).to.eql [
+      { columnNum: 0, lineNum: 0, type: AnonymousToken.types.OPENING }
+      { columnNum: 1, lineNum: 0, type: AnonymousToken.types.IDENTIFIER, name: 'console-log' }
+      { columnNum: 13, lineNum: 0, type: AnonymousToken.types.STRING, value: '"Hello, World!"' }
+      { columnNum: 28, lineNum: 0, type: AnonymousToken.types.CLOSING }
+    ]
 
-        done()
+  it 'should successfully analyze code that has function definitions in them', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/variable.lisp", "utf8"
+    tokens = compiler.analyze tokens
 
-    it 'should be able to compile the code across many lines.', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/if-else.lisp", (err, tokens) ->
-        object = compiler.LexicalAnalyzer.compile tokens
+    expect(tokens._tokens).to.eql [
+      { lineNum: 0, columnNum: 0, type: AnonymousToken.types.OPENING }
+      { lineNum: 0, columnNum: 1, type: AnonymousToken.types.KEYWORD, name: 'defun' }
+      { lineNum: 0, columnNum: 7, type: AnonymousToken.types.IDENTIFIER, name: 'some-var' }
+      { lineNum: 0, columnNum: 16, type: AnonymousToken.types.OPENING }
+      { lineNum: 0, columnNum: 17, type: AnonymousToken.types.CLOSING }
+      { lineNum: 0, columnNum: 19, type: AnonymousToken.types.NUMBER, value: '1' }
+      { lineNum: 0, columnNum: 20, type: AnonymousToken.types.CLOSING }
+      { lineNum: 2, columnNum: 0, type: AnonymousToken.types.OPENING }
+      { lineNum: 2, columnNum: 1, type: AnonymousToken.types.IDENTIFIER, name: 'console-log' }
+      { lineNum: 2, columnNum: 13, type: AnonymousToken.types.IDENTIFIER, name: 'some-var' }
+      { lineNum: 2, columnNum: 21, type: AnonymousToken.types.CLOSING }
+    ]
 
-        expect(object[0].tokens.length).to.be 4
+  it 'should successfully analyze code that has lambda expressions in them', ->
+    tokens = compiler.split "(defun something lambda another)"
+    tokens = compiler.analyze tokens
 
-        expect(object[0].tokens[0]).to.have.property 'token'
-        expect(object[0].tokens[0].token).to.be 'if'
+    expect(tokens._tokens).to.eql [
+      { lineNum: 0, columnNum: 0, type: AnonymousToken.types.OPENING }
+      { lineNum: 0, columnNum: 1, type: AnonymousToken.types.KEYWORD, name: 'defun' }
+      { lineNum: 0, columnNum: 7, type: AnonymousToken.types.IDENTIFIER, name: 'something' }
+      { lineNum: 0, columnNum: 17, type: AnonymousToken.types.KEYWORD, name: 'lambda' }
+      { lineNum: 0, columnNum: 24, type: AnonymousToken.types.IDENTIFIER, name: 'another' }
+      { lineNum: 0, columnNum: 31, type: AnonymousToken.types.CLOSING }
+    ]
 
-        expect(object[0].tokens[1].tokens).to.be.an 'array'
-        expect(object[0].tokens[1].tokens.length).to.be 3
+describe 'Scoper', ->
+  it 'should scope "(console-log "Hello, World!")".', ->
+    tokens = compiler.split '(console-log "Hello, World!")'
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
 
-        expect(object[0].tokens[1].tokens[0]).to.have.property 'token'
-        expect(object[0].tokens[1].tokens[0].token).to.be '<'
+    expect(scopes).to.eql [
+      [
+        {
+          lineNum: 0
+          columnNum: 1
+          type: AnonymousToken.types.IDENTIFIER
+          name: 'console-log'
+        }
+        {
+          lineNum: 0
+          columnNum: 13
+          type: AnonymousToken.types.STRING
+          value: '"Hello, World!"'
+        }
+      ]
+    ]
 
-        expect(object[0].tokens[1].tokens[1].tokens).to.be.an 'array'
-        expect(object[0].tokens[1].tokens[1].tokens.length).to.be 2
+# TODO: come up with tests for these.
+describe 'Compiler', ->
+  it 'should compile "(console-log "Hello, World")"', ->
+    tokens = compiler.split '(console-log "Hello, World!")'
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
+    objectCode = compiler.compile scopes
 
-        expect(object[0].tokens[1].tokens[1].tokens[0]).to.have.property 'token'
-        expect(object[0].tokens[1].tokens[1].tokens[0].token).to.be 'args'
+    #console.log JSON.stringify objectCode, null, "  "
 
-        expect(object[0].tokens[1].tokens[1].tokens[1]).to.have.property 'token'
-        expect(object[0].tokens[1].tokens[1].tokens[1].token).to.be '0'
+  it 'should compile code with more than one expressions, and at least one function definition', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/define.lisp", 'utf8'
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
+    objectCode = compiler.compile scopes
 
-        expect(object[0].tokens[1].tokens[2].tokens).to.be.an 'array'
-        expect(object[0].tokens[1].tokens[2].tokens.length).to.be 2
+    #console.log JSON.stringify objectCode, null, " "
 
-        expect(object[0].tokens[1].tokens[2].tokens[0]).to.have.property 'token'
-        expect(object[0].tokens[1].tokens[2].tokens[0].token).to.be 'args'
+describe 'Linker', ->
+  it 'should compile and link some valid DecafLISP code.', ->
+    tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/define.lisp", "utf8"
+    tokens = compiler.analyze tokens
+    scopes = compiler.scope tokens
+    objectCode = compiler.compile scopes
 
-        expect(object[0].tokens[1].tokens[2].tokens[1]).to.have.property 'token'
-        expect(object[0].tokens[1].tokens[2].tokens[1].token).to.be '1'
+    code = compiler.link objectCode
 
-        expect(object[0].tokens[2].tokens).to.be.an 'array'
-        expect(object[0].tokens[2].tokens.length).to.be 2
-
-        expect(object[0].tokens[2].tokens[0]).to.have.property 'token'
-        expect(object[0].tokens[2].tokens[0].token).to.be 'log'
-
-        expect(object[0].tokens[2].tokens[1]).to.have.property 'token'
-        expect(object[0].tokens[2].tokens[1].token).to.be '"First is greater."'
-
-        expect(object[0].tokens[3].tokens).to.be.an 'array'
-        expect(object[0].tokens[3].tokens.length).to.be 2
-
-        expect(object[0].tokens[3].tokens[0]).to.have.property 'token'
-        expect(object[0].tokens[3].tokens[0].token).to.be 'log'
-
-        expect(object[0].tokens[3].tokens[1]).to.have.property 'token'
-        expect(object[0].tokens[3].tokens[1].token).to.be '"Second is greater."'
-
-        done()
-
-    it 'should be able to compile function calls', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/define.lisp", (err, tokens) ->
-        object = compiler.LexicalAnalyzer.compile tokens
-
-        expect(object[0].type).to.be 'function'
-        expect(object[0].name).to.be 'display-something'
-        expect(object[0].params).to.eql ['val1', 'val2']
-
-        expect(object[1].type).to.be 'instructions'
-
-        done()
-
-    it 'should be able to compile functions with no parameters', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/variable.lisp", (err, tokens) ->
-        object = compiler.LexicalAnalyzer.compile tokens
-
-        expect(object[0].type).to.be 'function'
-        expect(object[0].name).to.be 'some-var'
-        expect(object[0].params).to.eql []
-
-        expect(object[1].type).to.be 'instructions'
-
-        done()
-
-    it 'should be able to link code', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/hello-world.lisp", (err, tokens) ->
-        object = compiler.LexicalAnalyzer.compile tokens
-        output = compiler.LexicalAnalyzer.link object
-
-        expect(output).to.be 'console.log("Hello, World!");\n'
-
-        done()
-
-    it 'should be able to link code with function definitions in them', (done) ->
-      compiler.LexicalAnalyzer.analyze "#{__dirname}/testfiles/variable.lisp", (err, tokens) ->
-        object = compiler.LexicalAnalyzer.compile tokens
-        output = compiler.LexicalAnalyzer.link object
-
-        console.log output
-
-        done()
+    console.log code
