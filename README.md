@@ -42,5 +42,25 @@ If you want the above to outputed to the console, then you would simply prepend 
 
 ### function definition
 
+```lisp
 (defun myfunc (somParam)
   (console-log someParam))
+
+; Calling the function.
+(myfunc "Hello, World!")
+```
+
+## TODO
+
+* lambda expressions
+* command-line options
+* implementation of the following functions
+  * `+` (addition)
+  * `-` (subtraction)
+  * `/` (division)
+  * `*` (multiplication)
+  * `>` (boolean greater than)
+  * `and` (boolean and)
+  * `or` (boolean or)
+  * `not` (boolean not)
+  * ... and any other that comes to mind
