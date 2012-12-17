@@ -3,12 +3,11 @@
   "description": "An insanely ugly dialect of LISP.",
   "keywords": ["lisp", "language", "useless"],
   "author": "Salehen Shovon Rahman",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "licenses": [{
     "type": "MIT",
     "url": "https://raw.github.com/shovon/decaf-lisp/master/LICENSE"
   }],
-  "private": true,
   "engines": {
     "node": ">=0.6.0"
   },
