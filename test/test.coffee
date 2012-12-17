@@ -135,6 +135,7 @@ describe 'Scoper', ->
       ]
     ]
 
+# TODO: come up with tests for these.
 describe 'Compiler', ->
   it 'should compile "(console-log "Hello, World")"', ->
     tokens = compiler.split '(console-log "Hello, World!")'
@@ -142,7 +143,7 @@ describe 'Compiler', ->
     scopes = compiler.scope tokens
     objectCode = compiler.compile scopes
 
-    console.log JSON.stringify objectCode, null, "  "
+    #console.log JSON.stringify objectCode, null, "  "
 
   it 'should compile code with more than one expressions, and at least one function definition', ->
     tokens = compiler.split fs.readFileSync "#{__dirname}/testfiles/define.lisp", 'utf8'
@@ -150,7 +151,7 @@ describe 'Compiler', ->
     scopes = compiler.scope tokens
     objectCode = compiler.compile scopes
 
-    console.log JSON.stringify objectCode, null, " "
+    #console.log JSON.stringify objectCode, null, " "
 
 describe 'Linker', ->
   it 'should compile and link some valid DecafLISP code.', ->

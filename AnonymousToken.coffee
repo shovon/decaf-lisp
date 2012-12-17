@@ -55,6 +55,13 @@ module.exports = class AnonymousToken extends Token
 
     assert false
 
+  @isConstant: (token) ->
+    return (token.type is AnonymousToken.types.STRING or
+      token.type is AnonymousToken.types.NUMBER or
+      token.type is AnonymousToken.types.BOOL_FALSE or
+      token.type is AnonymousToken.types.BOOL_TRUE)
+
+
   constructor: (token) ->
     @lineNum = token.lineNum
     @columnNum = token.columnNum

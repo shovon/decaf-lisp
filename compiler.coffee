@@ -121,6 +121,8 @@ module.exports.compile = compile = (scopes) ->
     scope[0].type is AnonymousToken.types.KEYWORD and
     scope[0].name is 'defun' or scope[0].name is 'lambda'
       offset = if scope[0].name is 'defun' then 1 else 0
+      if scope.length > 3 + offset
+        throw new SyntaxError scope[0], "malformed function."
       functionName = null
 
       if scope[0].name is 'defun'
@@ -192,32 +194,43 @@ module.exports.link = (objectCode) ->
   functionsDefined = false
   codeOutput = ''
 
-  outptuFunctionCall = (token) ->
+  outputFunctionCall = (token) ->
     if not token.name?
       throw new Error "Token's name is not defined."
-    return "func['token.name']"
+    return "func['#{token.name}']"
 
   outputExpressions = (scope) ->
     retval = ''
-    if scope.type is Scope.types.EXPRESSION
-      for expression in scope.scopes
-        if _.isArray(expression.scopes)
-          retval += outputExpression expression
-          retval += '('
-          retval += "#{outputExpression }"
-        else
-          if not expression.name?
-            throw new Error "A name is not defined for the expression."
-          retval += "func['#{expression.name}']("
-          retval += "#{outputExpression expression}"
-          retval += ")"
+    # That means the function might be a lambda expression
+    if _.isArray scope.scopes[0].scopes
+      retval += outputExpressions scope.scopes[0]
+    else
+      retval += outputFunctionCall scope.scopes[0]
+
+    retval += '('
+
+    debugger
+    parametersList = []
+
+    for expression in scope.scopes.slice 1
+      if _.isArray expression.scopes
+        parametersList.push outputExpressions expression
+      else if AnonymousToken.isConstant expression
+        parametersList.push AnonymousToken.getOriginal expression
+      else if expression.name?
+        parametersList.push expression.name
+
+    retval += parametersList.join ', '
+
+    retval += ')'
+
     return retval
 
   outputFunction = (scope) ->
     functionBody = "function (#{scope.parameters.join ', '}) {\n"
-    debugger
-    functionBody = "  return #{outputExpressions scope.scopes};\n"
-    functionBody = "};\n\n"
+    functionBody += "  return #{outputExpressions scope.scopes[0]};\n"
+    functionBody += "};\n\n"
+    return functionBody
 
   for scope in objectCode.scopes
     if scope.type is Scope.types.FUNCTION_DEFINITION
