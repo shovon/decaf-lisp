@@ -1,6 +1,6 @@
 # DecafLISP
 
-A dialect of lisp, meant for the Node.js runtime.
+A dialect of lisp, meant for the Node.js runtime. What's the use of this? Not much other than to just fool around. In fact, I only wrote it to learn compilers.
 
 ## Installation
 
