@@ -48,6 +48,16 @@ If you want the above to outputed to the console, then you would simply prepend 
 
 ; Calling the function.
 (myfunc "Hello, World!")
+; -> "Hello, World!"
+```
+
+### Anonymous functions
+
+```lisp
+(console-log
+  ((lambda (one, two)
+    (+ one two)) 1 2))
+; -> "3"
 ```
 
 ## TODO
