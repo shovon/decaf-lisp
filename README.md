@@ -52,5 +52,4 @@ If you want the above to outputed to the console, then you would simply prepend 
 
 ## TODO
 
-* lambda expressions
 * command-line options

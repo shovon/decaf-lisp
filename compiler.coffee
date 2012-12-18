@@ -256,7 +256,11 @@ module.exports.link = (objectCode) ->
     retval = ''
     # That means the function might be a lambda expression
     if _.isArray scope.scopes[0].scopes
-      retval += outputExpressions scope.scopes[0], parameters
+      debugger
+      if scope.scopes[0].type is Scope.types.LAMBDA_EXPRESSION
+        retval += "(#{outputFunction scope.scopes[0]})"
+      else
+        retval += outputExpressions scope.scopes[0], parameters
     else
       retval += outputFunctionCall scope.scopes[0]
 
@@ -285,7 +289,7 @@ module.exports.link = (objectCode) ->
   outputFunction = (scope) ->
     functionBody = "function (#{scope.parameters.join ', '}) {\n"
     functionBody += "  return #{outputExpressions scope.scopes[0], scope.parameters};\n"
-    functionBody += "};\n\n"
+    functionBody += "}"
     return functionBody
 
   functionsDefined = false
@@ -295,9 +299,8 @@ module.exports.link = (objectCode) ->
     if scope.type is Scope.types.FUNCTION_DEFINITION
       functionsDefined = true
       codeOutput = codeOutput + "func['#{scope.functionName}']"
-      codeOutput = codeOutput + " = #{outputFunction scope}"
+      codeOutput = codeOutput + " = #{outputFunction scope};\n\n"
     else if scope.type is Scope.types.EXPRESSION
-      debugger
       codeOutput = codeOutput + "#{outputExpressions scope};\n"
 
   if functionsDefined
