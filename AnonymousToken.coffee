@@ -1,5 +1,5 @@
-Token = require './Token.coffee'
 SyntaxError = require './SyntaxError.coffee'
+Token = require './Token.coffee'
 compilerRegExp = require './compilerRegExp.coffee'
 decafLisp = require './decaf-lisp.coffee'
 assert = require 'assert'

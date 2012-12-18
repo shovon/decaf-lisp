@@ -54,13 +54,3 @@ If you want the above to outputed to the console, then you would simply prepend 
 
 * lambda expressions
 * command-line options
-* implementation of the following functions
-  * `+` (addition)
-  * `-` (subtraction)
-  * `/` (division)
-  * `*` (multiplication)
-  * `>` (boolean greater than)
-  * `and` (boolean and)
-  * `or` (boolean or)
-  * `not` (boolean not)
-  * ... and any other that comes to mind

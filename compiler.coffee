@@ -197,15 +197,48 @@ module.exports.link = (objectCode) ->
       return val1
     else
       return val2
-  predefinedFunctions["<"] = (left, right) ->
-    return left < right
   predefinedFunctions["arg"] = (index) ->
     return process.argv[index]
   predefinedFunctions["num"] = (str) ->
     parseInt str, 10
-  # TODO: use the actual function name.
   predefinedFunctions["console-log"] = (arg) ->
     console.log arg
+  predefinedFunctions["+"] = ->
+    sum = 0
+    for arg in arguments
+      sum += arg
+    return sum
+  predefinedFunctions["-"] = ->
+    difference = arguments[0]
+    for arg in Array::slice.call arguments, 1
+      difference -= arg
+    return difference
+  predefinedFunctions["/"] = ->
+    quotient = arguments[0]
+    for arg in Array::slice.call arguments, 1
+      quotient /= arg
+    return quotient
+  predefinedFunctions["*"] = ->
+    product = arguments[0]
+    for arg in Array::slice.call arguments, 1
+      product *= arg
+    return product
+  predefinedFunctions["<"] = (left, right) ->
+    return left < right
+  predefinedFunctions[">"] = (left, right) ->
+    return left > right
+  predefinedFunctions["and"] = ->
+    tautology = true
+    for arg in arguments
+      tautology = tautology and arg
+    return tautology
+  predefinedFunctions["or"] = ->
+    tautology = false
+    for arg in arguments
+      tautology = tautology or arg
+    return tautology
+  predefinedFunctions["not"] = (proposition) ->
+    return not proposition
 
   functionsToDefine = []
 
