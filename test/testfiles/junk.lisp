@@ -1,2 +1,6 @@
-(console-log ((lambda (one two)
-  (+ one two)) 1 2))
+(defun fact (n)
+  (if (= n)
+    1
+    (* (- n 1) n)))
+
+(console-log (fact 3))

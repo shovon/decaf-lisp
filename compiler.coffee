@@ -227,6 +227,8 @@ module.exports.link = (objectCode) ->
     return left < right
   predefinedFunctions[">"] = (left, right) ->
     return left > right
+  predefinedFunctions["="] = (left, right) ->
+    return left is right
   predefinedFunctions["and"] = ->
     tautology = true
     for arg in arguments

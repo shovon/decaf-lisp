@@ -60,6 +60,17 @@ If you want the above to outputed to the console, then you would simply prepend 
 ; -> "3"
 ```
 
+### Factorial function
+
+```lisp
+(defun fact (n)
+  (if (= n)
+    1
+    (* (- n 1) n)))
+
+(console-log (fact 3))
+```
+
 ## TODO
 
 * command-line options
