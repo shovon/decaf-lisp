@@ -1,5 +1,3 @@
-Lazy = require 'lazy'
-carrier = require 'carrier'
 fs = require 'fs'
 Token = require './Token.coffee'
 TokenWithColumnNumber = require './TokenWithColumnNumber.coffee'
