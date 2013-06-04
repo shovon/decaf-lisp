@@ -418,7 +418,7 @@ describe("AST builder", function () {
 });
 
 describe("statment builder", function () {
-  it("should build `(hello-world)` into `f['hello-world']()`", function () {
+  it("should build `(hello-world)` into `" + helpers.FUNCTION_DEPOT_NAME + "['hello-world']()`", function () {
     var Statement       = helpers.Statement
       , buildTree       = helpers.buildTree
       , tree            = buildTree(['(', 'hello-world', ')'])
@@ -426,13 +426,13 @@ describe("statment builder", function () {
       , outputStatement = helpers.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var f = { 'hello-world': function () { return 'Hello, World!'; } };" +
+        "var " + helpers.FUNCTION_DEPOT_NAME + " = { 'hello-world': function () { return 'Hello, World!'; } };" +
         "return " + jsStatement + ";"
       );
       assert.equal(fn(), "Hello, World!");
   });
 
-  it("should build `(add2 4)` into `f['add2'](4)`", function () {
+  it("should build `(add2 4)` into `" + helpers.FUNCTION_DEPOT_NAME +"['add2'](4)`", function () {
     var Statement       = helpers.Statement
       , buildTree       = helpers.buildTree
       , tree            = buildTree(['(', 'add2', '4', ')'])
@@ -440,7 +440,7 @@ describe("statment builder", function () {
       , outputStatement = helpers.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var f = { 'add2': function (x) { return x + 2; } };" +
+        "var " + helpers.FUNCTION_DEPOT_NAME + " = { 'add2': function (x) { return x + 2; } };" +
         "return " + jsStatement + ";"
       );
       assert.equal(fn(), 6);
@@ -454,7 +454,7 @@ describe("statment builder", function () {
       , outputStatement = helpers.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var f = {" +
+        "var " + helpers.FUNCTION_DEPOT_NAME + " = {" +
           "addCurry: function (x) {" +
             "return function (y) {" +
               "return x + y;" +
@@ -476,7 +476,7 @@ describe("statment builder", function () {
       , outputStatement = helpers.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var f = {" +
+        "var " + helpers.FUNCTION_DEPOT_NAME + " = {" +
           "'some-lambda': function () {" +
             "return function () {" +
               "return 'Hello, World!';" +
@@ -500,7 +500,7 @@ describe("statment builder", function () {
     var outputStatement = helpers.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var f = {" +
+        "var " + helpers.FUNCTION_DEPOT_NAME + " = {" +
           "'hello-world': function () {" +
             "return 'Hello, World!';" +
           "}," +
@@ -527,7 +527,7 @@ describe("lambda builder", function () {
       , outputLambda = helpers.outputLambda
       , jsLambda     = outputLambda(lambda)
       , fn           = new Function(
-        "var f = { 'hello-world': function () { return 'Hello, World!'; } };" +
+        "var " + helpers.FUNCTION_DEPOT_NAME +" = { 'hello-world': function () { return 'Hello, World!'; } };" +
         "return " + jsLambda + ";"
       );
     assert.equal(fn()(), 'Hello, World!');
@@ -535,5 +535,7 @@ describe("lambda builder", function () {
 });
 
 describe("compiler", function () {
+  it("should be able to compile code, and then run it successfully.", function () {
 
+  });
 });
