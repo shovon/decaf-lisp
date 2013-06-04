@@ -534,6 +534,23 @@ describe("lambda builder", function () {
   });
 });
 
+describe("function builder", function () {
+  it("should be able to initialize a function", function () {
+    var source = "(defun add (x y) (+ x y))"
+      , tokens = helpers.tokenize(source)
+      , tree   = helpers.buildTree(tokens)
+      , ast    = helpers.buildAst(tree)
+      , output = helpers.outputFunction(ast[0])
+      , fn     = new Function(
+        "var " + helpers.FUNCTION_DEPOT_NAME + " = { '+': function (x, y) { return x + y;} };" +
+        output + ";" +
+        "return " + helpers.FUNCTION_DEPOT_NAME
+      );
+    debugger;
+    assert.equal(fn().add(2, 3) , 5);
+  });
+});
+
 describe("compiler", function () {
   it("should be able to compile code, and then run it successfully.", function () {
 
