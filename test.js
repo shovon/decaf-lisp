@@ -446,7 +446,7 @@ describe("statment builder", function () {
       assert.equal(fn(), 6);
   });
 
-  it("should handle currying fine e.g. `((addCurry 4) 2)`", function () {
+  it("should handle higher order functions just fine e.g. `((addCurry 4) 2)`", function () {
     var Statement       = helpers.Statement
       , buildTree       = helpers.buildTree
       , tree            = buildTree(['(', '(', 'addCurry', '4', ')', '2', ')'])
@@ -487,6 +487,31 @@ describe("statment builder", function () {
       );
 
     assert.equal(fn()(), "Hello, World!");
+  });
+
+  it("should be able to pass in a lambda functions", function () {
+    var Statement       = helpers.Statement
+      , buildTree       = helpers.buildTree
+      , tree            = buildTree([
+          '(', 'accept'
+          , '(', 'lambda', '(', ')'
+            , '(', 'hello-world', ')', ')', ')'])
+      , statement       = new Statement(tree[0])
+    var outputStatement = helpers.outputStatement
+      , jsStatement     = outputStatement(statement)
+      , fn              = new Function(
+        "var f = {" +
+          "'hello-world': function () {" +
+            "return 'Hello, World!';" +
+          "}," +
+          "accept: function (f) {" +
+            "return f();" +
+          "}" +
+        "};" +
+        "return " + jsStatement + ";"
+      );
+
+    assert.equal(fn(), "Hello, World!");
   });
 });
 
