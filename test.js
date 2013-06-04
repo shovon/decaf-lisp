@@ -465,6 +465,29 @@ describe("statment builder", function () {
       );
     assert.equal(fn(), 6);
   });
+
+  it("should be able to execute a lambda function on the fly", function () {
+    var Statement       = helpers.Statement
+      , buildTree       = helpers.buildTree
+      , tree            = buildTree([
+          '(', '(', 'lambda', '(', ')'
+          , '(', 'some-lambda', ')', ')', ')'])
+      , statement       = new Statement(tree[0])
+      , outputStatement = helpers.outputStatement
+      , jsStatement     = outputStatement(statement)
+      , fn              = new Function(
+        "var f = {" +
+          "'some-lambda': function () {" +
+            "return function () {" +
+              "return 'Hello, World!';" +
+            "}" +
+          "}" +
+        "};" +
+        "return " + jsStatement + ";"
+      );
+
+    assert.equal(fn()(), "Hello, World!");
+  });
 });
 
 describe("lambda builder", function () {
