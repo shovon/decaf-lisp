@@ -467,6 +467,25 @@ describe("statment builder", function () {
   });
 });
 
+describe("lambda builder", function () {
+  it("should be able to return an anonymous function", function () {
+    var Lambda       = helpers.Lambda
+      , buildTree    = helpers.buildTree
+      , tree         = buildTree([
+          '(', 'lambda', '(', ')'
+          , '(', 'hello-world', ')', ')'
+      ])
+      , lambda       = new Lambda(tree[0])
+      , outputLambda = helpers.outputLambda
+      , jsLambda     = outputLambda(lambda)
+      , fn           = new Function(
+        "var f = { 'hello-world': function () { return 'Hello, World!'; } };" +
+        "return " + jsLambda + ";"
+      );
+    assert.equal(fn()(), 'Hello, World!');
+  });
+});
+
 describe("compiler", function () {
 
 });
