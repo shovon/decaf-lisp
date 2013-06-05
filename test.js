@@ -1,6 +1,6 @@
-var helpers = require('./lib/helpers')
-  , assert  = require('assert')
-  , fs      = require('fs');
+var decafLisp = require('./lib/decaf-lisp.js')
+  , assert    = require('assert')
+  , fs        = require('fs');
 
 var getSource = function (name) {
   return fs.readFileSync("./examples/" + name + ".lisp", "utf8");
@@ -10,7 +10,7 @@ var isRegExp = function (obj) {
   return Object.prototype.toString.call(obj) === '[object RegExp]'
 };
 
-var isArray = helpers.isArray;
+var isArray = decafLisp.isArray;
 
 var isSpecialObject = function (obj) {
   return isArray(obj) || isRegExp(obj) || (obj === null);
@@ -60,7 +60,7 @@ assert.deepEqual = function (obj1, obj2) {
   throw new Error("Not yet implemented.");
 };
 
-describe("test helpers", function () {
+describe("test decafLisp", function () {
   describe("isArray", function () {
     it("should return true if given an array, and false otherwise", function () {
       assert(isArray([]));
@@ -201,10 +201,10 @@ describe("test helpers", function () {
   });
 });
 
-describe("helpers", function () {
+describe("decafLisp", function () {
   describe("isIn", function () {
     it("should return true if 1 is an element of [1, 2, 3], and false if 4 isn't.", function () {
-      var isIn = helpers.isIn;
+      var isIn = decafLisp.isIn;
       assert(isIn('1', '123'.split('')));
       assert(!isIn('4', '123'.split('')));
     });
@@ -214,7 +214,7 @@ describe("helpers", function () {
 describe("tokenizer", function () {
   it("should tokenize (something)", function () {
     var expected = ['(', 'something', ')']
-      , tokens   = helpers.tokenize('(something)');
+      , tokens   = decafLisp.tokenize('(something)');
 
     assert.equal(tokens.length, expected.length);
 
@@ -225,7 +225,7 @@ describe("tokenizer", function () {
 
   it("the spaces should be meaningless in (   something   )", function () {
     var expected = ['(', 'something', ')']
-      , tokens   = helpers.tokenize('(   something   )');
+      , tokens   = decafLisp.tokenize('(   something   )');
 
     assert.equal(tokens.length, expected.length);
 
@@ -236,7 +236,7 @@ describe("tokenizer", function () {
 
   it("subsequent parens should be considered separate parens", function () {
     var expected = ['(', '(', 'something', ')', ')']
-      , tokens   = helpers.tokenize('((something))');
+      , tokens   = decafLisp.tokenize('((something))');
 
     assert.equal(tokens.length, expected.length);
 
@@ -257,8 +257,8 @@ describe("tree builder", function () {
         ]
       ]
       , result
-      , tokenize  = helpers.tokenize
-      , buildTree = helpers.buildTree;
+      , tokenize  = decafLisp.tokenize
+      , buildTree = decafLisp.buildTree;
 
 
     result = buildTree(tokenize(code));
@@ -277,8 +277,8 @@ describe("tree builder", function () {
         ]
       ]
       , result
-      , tokenize  = helpers.tokenize
-      , buildTree = helpers.buildTree;
+      , tokenize  = decafLisp.tokenize
+      , buildTree = decafLisp.buildTree;
 
       result = buildTree(tokenize(code));
 
@@ -288,7 +288,7 @@ describe("tree builder", function () {
 
 describe("statement builder", function () {
   it("should be able to construct a statement", function () {
-    var Statement = helpers.Statement
+    var Statement = decafLisp.Statement
       , tree     = '+11'.split('')
       , expected = {
           type  : "call"
@@ -302,7 +302,7 @@ describe("statement builder", function () {
   });
 
   it("should be able to construct a statement with multiple levels of nesting", function () {
-    var Statement = helpers.Statement
+    var Statement = decafLisp.Statement
       , tree = [
           '+'
         , '+11'.split('')
@@ -330,7 +330,7 @@ describe("statement builder", function () {
 
 describe("function builder", function () {
   it("should be able to construct a function, that doesn't have any parameters", function () {
-    var LispFunction = helpers.LispFunction
+    var LispFunction = decafLisp.LispFunction
       , tree     = [ 'defun', "something", [], ['+', '1', '2'] ]
       , expected = {
           type  : "function"
@@ -351,7 +351,7 @@ describe("function builder", function () {
 
 describe("lambda builder", function () {
   it("should be able to construct a function, that doesn't have any parameters", function () {
-    var Lambda   = helpers.Lambda
+    var Lambda   = decafLisp.Lambda
       , tree     = [ 'lambda', [], '+12'.split('') ]
       , expected = {
           type  : "lambda"
@@ -408,9 +408,9 @@ describe("AST builder", function () {
         , params: [ '5' ]
       }]
       , result
-      , tokenize = helpers.tokenize
-      , buildTree = helpers.buildTree
-      , buildAst = helpers.buildAst;
+      , tokenize = decafLisp.tokenize
+      , buildTree = decafLisp.buildTree
+      , buildAst = decafLisp.buildAst;
 
     result = buildAst(buildTree(tokenize(code)));
     assert.deepEqual(result, expectedTree);
@@ -418,43 +418,43 @@ describe("AST builder", function () {
 });
 
 describe("statment builder", function () {
-  it("should build `(hello-world)` into `" + helpers.FUNCTION_DEPOT_NAME + "['hello-world']()`", function () {
-    var Statement       = helpers.Statement
-      , buildTree       = helpers.buildTree
+  it("should build `(hello-world)` into `" + decafLisp.FUNCTION_DEPOT_NAME + "['hello-world']()`", function () {
+    var Statement       = decafLisp.Statement
+      , buildTree       = decafLisp.buildTree
       , tree            = buildTree(['(', 'hello-world', ')'])
       , statement       = new Statement(tree[0])
-      , outputStatement = helpers.outputStatement
+      , outputStatement = decafLisp.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME + " = { 'hello-world': function () { return 'Hello, World!'; } };" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME + " = { 'hello-world': function () { return 'Hello, World!'; } };" +
         "return " + jsStatement + ";"
       );
       assert.equal(fn(), "Hello, World!");
   });
 
-  it("should build `(add2 4)` into `" + helpers.FUNCTION_DEPOT_NAME +"['add2'](4)`", function () {
-    var Statement       = helpers.Statement
-      , buildTree       = helpers.buildTree
+  it("should build `(add2 4)` into `" + decafLisp.FUNCTION_DEPOT_NAME +"['add2'](4)`", function () {
+    var Statement       = decafLisp.Statement
+      , buildTree       = decafLisp.buildTree
       , tree            = buildTree(['(', 'add2', '4', ')'])
       , statement       = new Statement(tree[0])
-      , outputStatement = helpers.outputStatement
+      , outputStatement = decafLisp.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME + " = { 'add2': function (x) { return x + 2; } };" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME + " = { 'add2': function (x) { return x + 2; } };" +
         "return " + jsStatement + ";"
       );
       assert.equal(fn(), 6);
   });
 
   it("should handle higher order functions just fine e.g. `((addCurry 4) 2)`", function () {
-    var Statement       = helpers.Statement
-      , buildTree       = helpers.buildTree
+    var Statement       = decafLisp.Statement
+      , buildTree       = decafLisp.buildTree
       , tree            = buildTree(['(', '(', 'addCurry', '4', ')', '2', ')'])
       , statement       = new Statement(tree[0])
-      , outputStatement = helpers.outputStatement
+      , outputStatement = decafLisp.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME + " = {" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME + " = {" +
           "addCurry: function (x) {" +
             "return function (y) {" +
               "return x + y;" +
@@ -467,16 +467,16 @@ describe("statment builder", function () {
   });
 
   it("should be able to execute a lambda function on the fly", function () {
-    var Statement       = helpers.Statement
-      , buildTree       = helpers.buildTree
+    var Statement       = decafLisp.Statement
+      , buildTree       = decafLisp.buildTree
       , tree            = buildTree([
           '(', '(', 'lambda', '(', ')'
           , '(', 'some-lambda', ')', ')', ')'])
       , statement       = new Statement(tree[0])
-      , outputStatement = helpers.outputStatement
+      , outputStatement = decafLisp.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME + " = {" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME + " = {" +
           "'some-lambda': function () {" +
             "return function () {" +
               "return 'Hello, World!';" +
@@ -490,17 +490,17 @@ describe("statment builder", function () {
   });
 
   it("should be able to pass in a lambda functions", function () {
-    var Statement       = helpers.Statement
-      , buildTree       = helpers.buildTree
+    var Statement       = decafLisp.Statement
+      , buildTree       = decafLisp.buildTree
       , tree            = buildTree([
           '(', 'accept'
           , '(', 'lambda', '(', ')'
             , '(', 'hello-world', ')', ')', ')'])
       , statement       = new Statement(tree[0])
-    var outputStatement = helpers.outputStatement
+    var outputStatement = decafLisp.outputStatement
       , jsStatement     = outputStatement(statement)
       , fn              = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME + " = {" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME + " = {" +
           "'hello-world': function () {" +
             "return 'Hello, World!';" +
           "}," +
@@ -517,17 +517,17 @@ describe("statment builder", function () {
 
 describe("lambda builder", function () {
   it("should be able to return an anonymous function", function () {
-    var Lambda       = helpers.Lambda
-      , buildTree    = helpers.buildTree
+    var Lambda       = decafLisp.Lambda
+      , buildTree    = decafLisp.buildTree
       , tree         = buildTree([
           '(', 'lambda', '(', ')'
           , '(', 'hello-world', ')', ')'
       ])
       , lambda       = new Lambda(tree[0])
-      , outputLambda = helpers.outputLambda
+      , outputLambda = decafLisp.outputLambda
       , jsLambda     = outputLambda(lambda)
       , fn           = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME +" = { 'hello-world': function () { return 'Hello, World!'; } };" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME +" = { 'hello-world': function () { return 'Hello, World!'; } };" +
         "return " + jsLambda + ";"
       );
     assert.equal(fn()(), 'Hello, World!');
@@ -537,39 +537,72 @@ describe("lambda builder", function () {
 describe("function builder", function () {
   it("should be able to initialize a function", function () {
     var source = "(defun add (x y) (+ x y))"
-      , tokens = helpers.tokenize(source)
-      , tree   = helpers.buildTree(tokens)
-      , ast    = helpers.buildAst(tree)
-      , output = helpers.outputFunction(ast[0])
+      , tokens = decafLisp.tokenize(source)
+      , tree   = decafLisp.buildTree(tokens)
+      , ast    = decafLisp.buildAst(tree)
+      , output = decafLisp.outputFunction(ast[0])
       , fn     = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME + " = { '+': function (x, y) { return x + y;} };" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME + " = { '+': function (x, y) { return x + y;} };" +
         output + ";" +
-        "return " + helpers.FUNCTION_DEPOT_NAME
+        "return " + decafLisp.FUNCTION_DEPOT_NAME
       );
     assert.equal(fn().add(2, 3) , 5);
   });
 
   it("should handle functions that return lambdas", function () {
     var source = "(defun curryAdd (a) (lambda (b) (+ a b)))"
-      , tokens = helpers.tokenize(source)
-      , tree   = helpers.buildTree(tokens)
-      , ast    = helpers.buildAst(tree)
-      , output = helpers.outputFunction(ast[0])
+      , tokens = decafLisp.tokenize(source)
+      , tree   = decafLisp.buildTree(tokens)
+      , ast    = decafLisp.buildAst(tree)
+      , output = decafLisp.outputFunction(ast[0])
       , fn     = new Function(
-        "var " + helpers.FUNCTION_DEPOT_NAME + " = { '+': function (x, y) { return x + y; } };" +
+        "var " + decafLisp.FUNCTION_DEPOT_NAME + " = { '+': function (x, y) { return x + y; } };" +
         output + ";" +
-        "return " + helpers.FUNCTION_DEPOT_NAME
+        "return " + decafLisp.FUNCTION_DEPOT_NAME
       );
   });
 });
 
-describe("compiler", function () {
+describe("code builder", function () {
   it("should be able to compile code, and then run it successfully.", function () {
-    var source = getSource('complete')
-      , tokens = helpers.tokenize(source)
-      , tree   = helpers.buildTree(tokens)
-      , ast    = helpers.buildAst(tree)
-      , output = helpers.compile(ast);
-    console.log(output);
+    var _log    = console.log
+      , source = getSource('complete')
+      , tokens = decafLisp.tokenize(source)
+      , tree   = decafLisp.buildTree(tokens)
+      , ast    = decafLisp.buildAst(tree)
+      , output = decafLisp.build(ast)
+      , fn     = new Function(output)
+      , logs   = [];
+
+    console.log = function (log) {
+      logs.push(log);
+    };
+
+    fn();
+
+    console.log = _log;
+
+    assert.equal(logs[0], 15);
+    assert.equal(logs[1], 15);
+  });
+});
+
+describe('compiler', function () {
+  it("should be able to compile the code, and then run it successfully.", function () {
+    var _log   = console.log
+      , output = decafLisp.compile(getSource('complete'))
+      , fn     = new Function(output)
+      , logs   = [];
+
+    console.log = function (log) {
+      logs.push(log);
+    };
+
+    fn();
+
+    console.log = _log;
+
+    assert.equal(logs[0], 15);
+    assert.equal(logs[1], 15);
   });
 });
