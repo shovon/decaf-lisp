@@ -546,13 +546,30 @@ describe("function builder", function () {
         output + ";" +
         "return " + helpers.FUNCTION_DEPOT_NAME
       );
-    debugger;
     assert.equal(fn().add(2, 3) , 5);
+  });
+
+  it("should handle functions that return lambdas", function () {
+    var source = "(defun curryAdd (a) (lambda (b) (+ a b)))"
+      , tokens = helpers.tokenize(source)
+      , tree   = helpers.buildTree(tokens)
+      , ast    = helpers.buildAst(tree)
+      , output = helpers.outputFunction(ast[0])
+      , fn     = new Function(
+        "var " + helpers.FUNCTION_DEPOT_NAME + " = { '+': function (x, y) { return x + y; } };" +
+        output + ";" +
+        "return " + helpers.FUNCTION_DEPOT_NAME
+      );
   });
 });
 
 describe("compiler", function () {
   it("should be able to compile code, and then run it successfully.", function () {
-
+    var source = getSource('complete')
+      , tokens = helpers.tokenize(source)
+      , tree   = helpers.buildTree(tokens)
+      , ast    = helpers.buildAst(tree)
+      , output = helpers.compile(ast);
+    console.log(output);
   });
 });

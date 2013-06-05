@@ -5,6 +5,6 @@
   (lambda (b)
     (+ a b)))
 
-(add 10 5)
+(console-log (add 10 5))
 
-((curryAdd 10) 5)
+(console-log ((curryAdd 10) 5))
